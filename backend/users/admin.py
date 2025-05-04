@@ -1,13 +1,27 @@
-# backend/users/admin.py
 from django.contrib import admin
-from .models import User, Follow
+
+from .models import User, Subscription
+
 
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
-    list_display = ('id', 'email', 'username', 'first_name', 'last_name')
-    search_fields = ('email', 'username')
+    """ В админке возможность редактировать и удалять
+    все данные о пользователях. Фильтрация по email и username.
+    """
+    list_display = (
+        'id',
+        'username',
+        'email',
+        'first_name',
+        'last_name',
+        'password',
+        'role',
+    )
+    search_fields = ('username',)
+    list_filter = ('username', 'email')
 
-@admin.register(Follow)
-class FollowAdmin(admin.ModelAdmin):
+
+@admin.register(Subscription)
+class SubscriptionAdmin(admin.ModelAdmin):
+    """Класс для настройки отображения данных о подписках."""
     list_display = ('user', 'author')
-    search_fields = ('user__email', 'author__email')

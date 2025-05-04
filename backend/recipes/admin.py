@@ -1,32 +1,54 @@
 from django.contrib import admin
-from .models import (Tag, Ingredient, Recipe,
-                     IngredientInRecipe, Favorite, ShoppingCart)
 
-@admin.register(Tag)
-class TagAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'color', 'slug')
-    search_fields = ('name', 'slug')
-    prepopulated_fields = {'slug': ('name',)}
+from .models import (Recipe, Tag, IngredientInRecipe,
+                     ShoppingCart, Favorite, Ingredient)
 
 
-@admin.register(Ingredient)
-class IngredientAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'measurement_unit')
-    search_fields = ('name',)
-
-
-class IngredientInline(admin.TabularInline):
+class RecipeIngredientInline(admin.TabularInline):
     model = IngredientInRecipe
-    extra = 1
+    min_num = 1
+    extra = 0
 
 
 @admin.register(Recipe)
 class RecipeAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'author', 'fav_count')
-    search_fields = ('name', 'author__username', 'author__email')
-    list_filter = ('tags',)
-    inlines = (IngredientInline,)
+    """Настройка отображения данных о рецептах
+    в интерфейсе администратора.
+    """
+    inlines = (RecipeIngredientInline,)
+    list_display = (
+        'name', 'author', 'pub_date',
+    )
+    list_filter = ('name', 'author',)
+    search_fields = ('name',)
 
-    @admin.display(description='В избранном')
-    def fav_count(self, obj):
-        return obj.in_favorites.count()
+
+@admin.register(Tag)
+class TagAdmin(admin.ModelAdmin):
+    """Настройки отображения данных о тэгах
+    в интерфейсе администратора.
+    """
+    list_display = ('pk', 'name', 'slug', 'color',)
+
+
+@admin.register(Ingredient)
+class IngredientAdmin(admin.ModelAdmin):
+    """Настройка отображения данных об ингредиентах
+    в интерфейсе администратора.
+    """
+    list_display = ('pk', 'name', 'measurement_unit')
+
+
+@admin.register(Favorite)
+class FavoriteAdmin(admin.ModelAdmin):
+    """Настройки отображения данных о рецептах,
+    которые пользователи отмечают избранными.
+    """
+    list_display = ('user', 'recipe')
+
+
+@admin.register(ShoppingCart)
+class ShoppingCartAdmin(admin.ModelAdmin):
+    """Настройки отображения списка покупок."""
+
+    list_display = ('user', 'recipe')
