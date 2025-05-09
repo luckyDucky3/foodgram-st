@@ -1,111 +1,76 @@
-# backend/users/models.py
-from django.contrib.auth.models import AbstractUser
-from django.db.models import UniqueConstraint
 from django.db import models
-from django.core.validators import RegexValidator
+from django.contrib.auth.models import AbstractUser
+from django.utils.translation import gettext_lazy as _
 from django.core.exceptions import ValidationError
-
-
-def check_username(value):
-    if value.lower() == 'me':
-        raise ValidationError('Имя пользователя не может быть таким')
+from .constants import EMAIL_MAX_LENGTH, NAME_MAX_LENGTH, USERNAME_MAX_LENGTH
 
 
 class User(AbstractUser):
-    """Кастомная модель пользователя.
-    Поля email, first_name и last_name обязательны,
-    уникальный идентификатор - email.
-    """
-
-    USER = 'user'
-    ADMIN = 'admin'
-    ROLE_CHOICES = [
-        (USER, 'user'),
-        (ADMIN, 'admin'),
-    ]
-
-    email = models.EmailField(
-        'email',
-        max_length=254,
-        blank=False,
-        unique=True
-    )
-    first_name = models.CharField(
-        'Имя',
-        max_length=150,
-        blank=False,
-        validators=[
-            RegexValidator(
-                regex=r'^[а-яА-ЯёЁa-zA-Z -]+$',
-                message='Введите корректное имя/название'
-            ), check_username
-        ]
-    )
-    last_name = models.CharField(
-        'Фамилия',
-        max_length=150,
-        blank=False,
-        validators=[
-            RegexValidator(
-                regex=r'^[а-яА-ЯёЁa-zA-Z -]+$',
-                message='Введите корректное имя/название'
-            ), check_username
-        ]
-    )
-    password = models.CharField(
-        'Пароль',
-        max_length=150,
-    )
-
-    role = models.CharField(
-        'Роль пользователя',
-        max_length=5,
-        choices=ROLE_CHOICES,
-        default=USER,
-        blank=True,
-    )
+    """Пользовательская модель User для Foodgram."""
 
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['username', 'last_name', 'first_name', ]
+    REQUIRED_FIELDS = ['username', 'first_name', 'last_name']
 
-    @property
-    def is_guest(self):
-        return self.role == self.GUEST
-
-    @property
-    def is_admin(self):
-        return self.role == self.ADMIN or self.is_superuser
+    email = models.EmailField(
+        _('email address'),
+        max_length=EMAIL_MAX_LENGTH,
+        unique=True,
+    )
+    first_name = models.CharField(
+        _('first name'),
+        max_length=NAME_MAX_LENGTH,
+    )
+    last_name = models.CharField(
+        _('last name'),
+        max_length=NAME_MAX_LENGTH,
+    )
+    avatar = models.ImageField(
+        _('avatar'),
+        upload_to='users/',
+        blank=True,
+        null=True,
+    )
 
     class Meta:
-        ordering = ('id',)
-        verbose_name = 'User'
-        verbose_name_plural = 'Users'
+        verbose_name = _('user')
+        verbose_name_plural = _('users')
+        ordering = ['username']
 
     def __str__(self):
         return self.username
 
 
 class Subscription(models.Model):
-    """Подписки на авторов."""
+    """Модель для подписок пользователей."""
 
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name='follower',
-        verbose_name='Подписчик',
+        related_name='subscriptions',
+        verbose_name=_('user'),
     )
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name='following',
-        verbose_name='Автор, на которого подписываются',
+        related_name='subscribers',
+        verbose_name=_('author'),
     )
 
     class Meta:
-        verbose_name = 'Подписка'
-        verbose_name_plural = 'Подписки'
+        verbose_name = _('subscription')
+        verbose_name_plural = _('subscriptions')
+        ordering = ['user__username', 'author__username']
         constraints = [
-            UniqueConstraint(fields=['user', 'author'],
-                             name='unique_subscription')
+            models.UniqueConstraint(
+                fields=['user', 'author'],
+                name='unique_subscription'
+            ),
         ]
 
+    def __str__(self):
+        return f'{self.user} → {self.author}'
+
+    def clean(self):
+        """Валидация на уровне модели для предотвращения самоподписки."""
+        if self.user == self.author:
+            raise ValidationError(_('You cannot subscribe to yourself'))

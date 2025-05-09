@@ -1,33 +1,38 @@
+import os
 from pathlib import Path
 from dotenv import load_dotenv
-import os
+from django.core.management.utils import get_random_secret_key
+
 
 load_dotenv()
 
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = '5!3qw0&6g^9aechm@!5f13f*num!u_3$9&^0xr46-90f-35si='
 
-DEBUG = True
+SECRET_KEY = os.getenv('SECRET_KEY', get_random_secret_key())
 
-ALLOWED_HOSTS = ['*']
 
-AUTH_USER_MODEL = 'users.User'
+DEBUG = os.getenv('DEBUG', 'False') == 'True'
+
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+
 
 INSTALLED_APPS = [
-    'api.apps.ApiConfig',
-    'recipes.apps.RecipesConfig',
-    'users.apps.UsersConfig',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'django_filters',
     'rest_framework',
     'rest_framework.authtoken',
+    'django_filters',
     'djoser',
+    'users.apps.UsersConfig',
+    'recipes.apps.RecipesConfig',
+    'api.apps.ApiConfig',
+    'redirector',
 ]
 
 MIDDLEWARE = [
@@ -40,7 +45,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'foodgram_backend.urls'
+ROOT_URLCONF = 'foodgram.urls'
 
 TEMPLATES = [
     {
@@ -58,24 +63,20 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'foodgram_backend.wsgi.application'
+WSGI_APPLICATION = 'foodgram.wsgi.application'
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': os.getenv('DB_ENGINE', 'django.db.backends.postgresql'),
-#         'NAME': os.getenv('DB_NAME'),
-#         'USER': os.getenv('POSTGRES_USER'),
-#         'PASSWORD': os.getenv('POSTGRES_PASSWORD'),
-#         'HOST': os.getenv('DB_HOST'),
-#         'PORT': os.getenv('DB_PORT')
-#     }
-# }
+
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        'ENGINE': os.getenv('DB_ENGINE', 'django.db.backends.sqlite3'),
+        'NAME': os.getenv('DB_NAME', os.path.join(BASE_DIR, 'db.sqlite3')),
+        'USER': os.getenv('POSTGRES_USER', 'postgres'),
+        'PASSWORD': os.getenv('POSTGRES_PASSWORD', 'postgres'),
+        'HOST': os.getenv('DB_HOST', 'localhost'),
+        'PORT': os.getenv('DB_PORT', '5432'),
     }
 }
+
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -92,13 +93,12 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+
 LANGUAGE_CODE = 'ru'
 
 TIME_ZONE = 'UTC'
 
 USE_I18N = True
-
-USE_L10N = True
 
 USE_TZ = True
 
@@ -110,30 +110,35 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.AllowAny',
+        'rest_framework.permissions.IsAuthenticatedOrReadOnly',
     ],
-
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.TokenAuthentication',
     ],
-    'DEFAULT_PAGINATION_CLASS': 'api.pagination.CustomPagination',
-    'NON_FIELD_ERRORS_KEY': 'errors',
+    'DEFAULT_PAGINATION_CLASS': 'api.pagination.LimitPageNumberPagination',
+    'PAGE_SIZE': 6,
 }
 
-DJOSER = {
-    'SERIALIZERS': {
-        'user_create': 'api.serializers.UserPostSerializer',
-        'user': 'api.serializers.UserGetSerializer',
-        'current_user': 'api.serializers.UserGetSerializer',
-    },
 
+DJOSER = {
+    'LOGIN_FIELD': 'email',
+    'SERIALIZERS': {
+        'user_create': 'api.serializers.users.UserSerializer',
+        'user': 'api.serializers.users.UserSerializer',
+        'current_user': 'api.serializers.users.UserSerializer',
+    },
     'PERMISSIONS': {
-        'user': ['djoser.permissions.CurrentUserOrAdminOrReadOnly'],
-        'user_list': ['rest_framework.permissions.IsAuthenticatedOrReadOnly'],
+        'user': ['rest_framework.permissions.IsAuthenticated'],
+        'user_list': ['rest_framework.permissions.AllowAny'],
+        'user_create': ['rest_framework.permissions.AllowAny'],
     },
     'HIDE_USERS': False,
 }
 
-DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
+
+AUTH_USER_MODEL = 'users.User'

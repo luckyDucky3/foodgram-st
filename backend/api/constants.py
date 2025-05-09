@@ -1,5 +1,3 @@
-PAGE_SIZE = 6
-CHOICES_LIST = (
-    ('0', 'False'),
-    ('1', 'True')
-)
+DEFAULT_PAGE_SIZE = 6
+DEFAULT_MAX_PAGE_SIZE = 100
+LIMIT_QUERY_PARAM = 'limit'
