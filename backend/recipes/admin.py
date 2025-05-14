@@ -1,55 +1,65 @@
 from django.contrib import admin
-from django.utils.translation import gettext_lazy as _
-from django.contrib.admin import display
+from django.db.models import Count
 
 from .models import (
-    Ingredient, Recipe, RecipeIngredient,
-    Favorite, ShoppingCart, RecipeShortLink
+    Favorite,
+    Ingredient,
+    Recipe,
+    RecipeIngredient,
+    ShoppingCart,
+    Tag
 )
+
+
+@admin.register(Tag)
+class TagAdmin(admin.ModelAdmin):
+    list_display = ('id', 'name', 'color', 'slug')
+    search_fields = ('name', 'slug')
+    list_filter = ('name',)
+
+
+@admin.register(Ingredient)
+class IngredientAdmin(admin.ModelAdmin):
+    list_display = ('id', 'name', 'measurement_unit')
+    search_fields = ('name',)
+    list_filter = ('measurement_unit',)
 
 
 class RecipeIngredientInline(admin.TabularInline):
     model = RecipeIngredient
     min_num = 1
     extra = 1
-    verbose_name = _('Ingredient')
-    verbose_name_plural = _('Ingredients')
 
 
 @admin.register(Recipe)
 class RecipeAdmin(admin.ModelAdmin):
-    list_display = ('name', 'author', 'favorites_count')
-    search_fields = ('name', 'author__username', 'author__email')
-    list_filter = ('author', 'name')
+    list_display = ('id', 'name', 'author', 'favorites_count')
+    search_fields = ('name', 'author__username')
+    list_filter = ('author', 'tags')
     inlines = (RecipeIngredientInline,)
-    readonly_fields = ('favorites_count',)
 
-    @display(description=_('Added to favorites'))
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        return queryset.annotate(favorites_count=Count('in_favorites'))
+
     def favorites_count(self, obj):
-        """Return the number of users who added the recipe to favorites."""
-        return obj.favorites.count()
+        return obj.favorites_count
+    favorites_count.short_description = 'В избранном'
 
 
-@admin.register(Ingredient)
-class IngredientAdmin(admin.ModelAdmin):
-    list_display = ('name', 'measurement_unit')
-    search_fields = ('name',)
-    list_filter = ('measurement_unit',)
+@admin.register(RecipeIngredient)
+class RecipeIngredientAdmin(admin.ModelAdmin):
+    list_display = ('id', 'recipe', 'ingredient', 'amount')
+    search_fields = ('recipe__name', 'ingredient__name')
 
 
 @admin.register(Favorite)
 class FavoriteAdmin(admin.ModelAdmin):
-    list_display = ('user', 'recipe')
+    list_display = ('id', 'user', 'recipe')
     search_fields = ('user__username', 'recipe__name')
 
 
 @admin.register(ShoppingCart)
 class ShoppingCartAdmin(admin.ModelAdmin):
-    list_display = ('user', 'recipe')
+    list_display = ('id', 'user', 'recipe')
     search_fields = ('user__username', 'recipe__name')
-
-
-@admin.register(RecipeShortLink)
-class RecipeShortLinkAdmin(admin.ModelAdmin):
-    list_display = ('recipe', 'slug')
-    search_fields = ('recipe__name', 'slug')

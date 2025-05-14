@@ -1,11 +1,18 @@
-FROM python:3.9
+FROM python:3.9-slim
 
 WORKDIR /app
 
+RUN apt-get update && apt-get install -y \
+    netcat-openbsd \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY requirements.txt .
 
-RUN pip3 install -r requirements.txt --no-cache-dir
+RUN pip install --upgrade pip && pip install -r requirements.txt --no-cache-dir
 
 COPY . .
 
-CMD ["gunicorn", "foodgram_backend.wsgi:application", "--bind", "0:8000" ]
+RUN chmod +x /app/entrypoint.sh
+
+ENTRYPOINT ["/app/entrypoint.sh"]
+CMD ["gunicorn", "foodgram.wsgi:application", "--bind", "0.0.0.0:8000"]

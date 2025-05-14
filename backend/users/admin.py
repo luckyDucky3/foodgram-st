@@ -1,63 +1,50 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from django.contrib.admin import display
-from django.utils.translation import gettext_lazy as _
-from django.db.models import Count
+from django.contrib.auth import get_user_model
 
-from .models import User, Subscription
+from .models import Subscription
+
+User = get_user_model()
 
 
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
     list_display = (
-        'username', 'email', 'first_name',
-        'last_name', 'is_staff', 'recipes_count', 'subscribers_count'
+        'id', 
+        'username', 
+        'email', 
+        'first_name',
+        'last_name', 
+        'is_staff'
     )
-    search_fields = ('username', 'email', 'first_name', 'last_name')
     list_filter = ('is_staff', 'is_superuser', 'is_active')
-    fieldsets = (
-        (None, {'fields': ('username', 'password')}),
-        (_('Personal info'), {
-         'fields': ('first_name', 'last_name', 'email', 'avatar')}),
-        (
-            _('Permissions'),
-            {
-                'fields': (
-                    'is_active',
-                    'is_staff',
-                    'is_superuser',
-                    'groups',
-                    'user_permissions',
-                ),
-            },
-        ),
-        (_('Important dates'), {'fields': ('last_login', 'date_joined')}),
+    search_fields = ('username', 'email', 'first_name', 'last_name')
+    ordering = ('id',)
+    
+    fieldsets = UserAdmin.fieldsets + (
+        ('Дополнительная информация', {'fields': ('avatar',)}),
     )
-
-    def get_queryset(self, request):
-        """Оптимизированный queryset с аннотациями для подсчета."""
-
-        queryset = super().get_queryset(request)
-        queryset = queryset.annotate(
-            _recipes_count=Count('recipes', distinct=True),
-            _subscribers_count=Count('subscribers', distinct=True)
-        )
-        return queryset
-
-    @display(description=_('Recipes'))
-    def recipes_count(self, obj):
-        """Количество рецептов у пользователя."""
-
-        return getattr(obj, '_recipes_count', 0)
-
-    @display(description=_('Subscribers'))
-    def subscribers_count(self, obj):
-        """Количество подписчиков у пользователя."""
-
-        return getattr(obj, '_subscribers_count', 0)
+    
+    add_fieldsets = (
+        (None, {
+            'classes': ('wide',),
+            'fields': (
+                'email', 
+                'username', 
+                'first_name', 
+                'last_name', 
+                'password1', 
+                'password2'
+            )
+        }),
+    )
 
 
 @admin.register(Subscription)
 class SubscriptionAdmin(admin.ModelAdmin):
-    list_display = ('user', 'author')
+    list_display = ('id', 'user', 'author')
     search_fields = ('user__username', 'author__username')
+    list_filter = ('user', 'author')
+    
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('user', 'author')

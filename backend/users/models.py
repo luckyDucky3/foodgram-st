@@ -1,76 +1,68 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
-from django.utils.translation import gettext_lazy as _
-from django.core.exceptions import ValidationError
-from .constants import EMAIL_MAX_LENGTH, NAME_MAX_LENGTH, USERNAME_MAX_LENGTH
+from django.db.models import UniqueConstraint
 
 
 class User(AbstractUser):
-    """Пользовательская модель User для Foodgram."""
+    email = models.EmailField(
+        verbose_name='Адрес электронной почты',
+        max_length=254,
+        unique=True,
+    )
+    first_name = models.CharField(
+        verbose_name='Имя',
+        max_length=150,
+    )
+    last_name = models.CharField(
+        verbose_name='Фамилия',
+        max_length=150,
+    )
+    avatar = models.ImageField(
+        verbose_name='Аватар',
+        upload_to='avatars/',
+        blank=True,
+        null=True
+    )
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username', 'first_name', 'last_name']
 
-    email = models.EmailField(
-        _('email address'),
-        max_length=EMAIL_MAX_LENGTH,
-        unique=True,
-    )
-    first_name = models.CharField(
-        _('first name'),
-        max_length=NAME_MAX_LENGTH,
-    )
-    last_name = models.CharField(
-        _('last name'),
-        max_length=NAME_MAX_LENGTH,
-    )
-    avatar = models.ImageField(
-        _('avatar'),
-        upload_to='users/',
-        blank=True,
-        null=True,
-    )
-
     class Meta:
-        verbose_name = _('user')
-        verbose_name_plural = _('users')
-        ordering = ['username']
+        verbose_name = 'Пользователь'
+        verbose_name_plural = 'Пользователи'
+        ordering = ['id']
 
     def __str__(self):
         return self.username
 
 
 class Subscription(models.Model):
-    """Модель для подписок пользователей."""
-
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
         related_name='subscriptions',
-        verbose_name=_('user'),
+        verbose_name='Подписчик'
     )
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
         related_name='subscribers',
-        verbose_name=_('author'),
+        verbose_name='Автор'
     )
 
     class Meta:
-        verbose_name = _('subscription')
-        verbose_name_plural = _('subscriptions')
-        ordering = ['user__username', 'author__username']
+        verbose_name = 'Подписка'
+        verbose_name_plural = 'Подписки'
         constraints = [
-            models.UniqueConstraint(
+            UniqueConstraint(
                 fields=['user', 'author'],
                 name='unique_subscription'
             ),
+            models.CheckConstraint(
+                check=~models.Q(user=models.F('author')),
+                name='prevent_self_subscription'
+            )
         ]
 
     def __str__(self):
-        return f'{self.user} → {self.author}'
-
-    def clean(self):
-        """Валидация на уровне модели для предотвращения самоподписки."""
-        if self.user == self.author:
-            raise ValidationError(_('You cannot subscribe to yourself'))
+        return f'{self.user.username} подписан на {self.author.username}'

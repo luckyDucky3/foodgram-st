@@ -1,22 +1,13 @@
 import os
 from pathlib import Path
-from dotenv import load_dotenv
-from django.core.management.utils import get_random_secret_key
-
-
-load_dotenv()
-
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-i6p4v!25k36dx53j_)qk)@6g62(a^4rp=pbo@%e)l4vz3h8&+m')
 
-SECRET_KEY = os.getenv('SECRET_KEY', get_random_secret_key())
+DEBUG = True
 
-
-DEBUG = os.getenv('DEBUG', 'False') == 'True'
-
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
-
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '*']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -27,12 +18,10 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'rest_framework.authtoken',
-    'django_filters',
     'djoser',
+    'django_filters',
     'users.apps.UsersConfig',
     'recipes.apps.RecipesConfig',
-    'api.apps.ApiConfig',
-    'redirector',
 ]
 
 MIDDLEWARE = [
@@ -65,18 +54,12 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'foodgram.wsgi.application'
 
-
 DATABASES = {
     'default': {
-        'ENGINE': os.getenv('DB_ENGINE', 'django.db.backends.sqlite3'),
-        'NAME': os.getenv('DB_NAME', os.path.join(BASE_DIR, 'db.sqlite3')),
-        'USER': os.getenv('POSTGRES_USER', 'postgres'),
-        'PASSWORD': os.getenv('POSTGRES_PASSWORD', 'postgres'),
-        'HOST': os.getenv('DB_HOST', 'localhost'),
-        'PORT': os.getenv('DB_PORT', '5432'),
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
-
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -93,15 +76,15 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+LANGUAGE_CODE = 'ru-ru'
 
-LANGUAGE_CODE = 'ru'
-
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Europe/Moscow'
 
 USE_I18N = True
 
-USE_TZ = True
+USE_L10N = True
 
+USE_TZ = True
 
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
@@ -109,36 +92,41 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
-
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+AUTH_USER_MODEL = 'users.User'
 
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticatedOrReadOnly',
+        'rest_framework.permissions.IsAuthenticated',
     ],
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.TokenAuthentication',
     ],
-    'DEFAULT_PAGINATION_CLASS': 'api.pagination.LimitPageNumberPagination',
-    'PAGE_SIZE': 6,
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend',
+    ],
 }
-
 
 DJOSER = {
     'LOGIN_FIELD': 'email',
+    'HIDE_USERS': False,
     'SERIALIZERS': {
-        'user_create': 'api.serializers.users.UserSerializer',
-        'user': 'api.serializers.users.UserSerializer',
-        'current_user': 'api.serializers.users.UserSerializer',
+        'user_create': 'users.serializers.CustomUserCreateSerializer',
+        'user': 'users.serializers.CustomUserSerializer',
+        'current_user': 'users.serializers.CustomUserSerializer',
     },
     'PERMISSIONS': {
-        'user': ['rest_framework.permissions.IsAuthenticated'],
+        'user': ['rest_framework.permissions.AllowAny'],
         'user_list': ['rest_framework.permissions.AllowAny'],
         'user_create': ['rest_framework.permissions.AllowAny'],
+        'user_delete': ['rest_framework.permissions.IsAuthenticated'],
+        'set_password': ['rest_framework.permissions.IsAuthenticated'],
+        'username_reset': ['rest_framework.permissions.AllowAny'],
+        'username_reset_confirm': ['rest_framework.permissions.AllowAny'],
+        'password_reset': ['rest_framework.permissions.AllowAny'],
+        'password_reset_confirm': ['rest_framework.permissions.AllowAny'],
+        'token_create': ['rest_framework.permissions.AllowAny'],
+        'token_destroy': ['rest_framework.permissions.IsAuthenticated'],
     },
-    'HIDE_USERS': False,
 }
-
-
-AUTH_USER_MODEL = 'users.User'
