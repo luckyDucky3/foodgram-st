@@ -36,7 +36,7 @@ Foodgram - веб-приложение "Продуктовый помощник"
 1. Клонируйте репозиторий
 
 ```
-git clone https://github.com/username/foodgram-project-react.git
+git clone https://github.com/luckyDucky3/foodgram-st.git
 cd foodgram-project-react
 ```
 
