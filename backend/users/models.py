@@ -1,9 +1,22 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.db.models import UniqueConstraint
+from django.contrib.auth.validators import UnicodeUsernameValidator
 
 
 class User(AbstractUser):
+    username_validator = UnicodeUsernameValidator()
+    
+    username = models.CharField(
+        verbose_name='Имя пользователя',
+        max_length=150,
+        unique=True,
+        validators=[username_validator],
+        error_messages={
+            'unique': 'Пользователь с таким именем уже существует.',
+        },
+    )
+    
     email = models.EmailField(
         verbose_name='Адрес электронной почты',
         max_length=254,
@@ -19,18 +32,18 @@ class User(AbstractUser):
     )
     avatar = models.ImageField(
         verbose_name='Аватар',
-        upload_to='users/avatars/', 
+        upload_to='avatars/',
         blank=True,
         null=True
     )
 
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['username', 'first_name', 'last_name']
+    REQUIRED_FIELDS = ('username', 'first_name', 'last_name')
 
     class Meta:
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
-        ordering = ['id']
+        ordering = ('username',)  
 
     def __str__(self):
         return self.username
@@ -46,7 +59,7 @@ class Subscription(models.Model):
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name='subscribers',
+        related_name='subscribers',  
         verbose_name='Автор'
     )
 

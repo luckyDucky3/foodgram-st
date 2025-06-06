@@ -12,7 +12,7 @@ User = get_user_model()
 class Tag(models.Model):
     name = models.CharField(
         verbose_name='Название',
-        max_length=200,
+        max_length=100,
         unique=True,
     )
     color = models.CharField(
@@ -22,7 +22,7 @@ class Tag(models.Model):
     )
     slug = models.SlugField(
         verbose_name='Уникальный слаг',
-        max_length=200,
+        max_length=100,
         unique=True,
     )
 
@@ -38,12 +38,12 @@ class Tag(models.Model):
 class Ingredient(models.Model):
     name = models.CharField(
         verbose_name='Название ингредиента',
-        max_length=200,
+        max_length=100,
         blank=False
     )
     measurement_unit = models.CharField(
         verbose_name='Единица измерения',
-        max_length=200,
+        max_length=50,
         blank=False 
     )
 
@@ -71,9 +71,8 @@ class Recipe(models.Model):
     )
     name = models.CharField(
         verbose_name='Название рецепта',
-        max_length=200,
-        blank=False 
- 
+        max_length=100,
+        blank=False
     )
     image = models.ImageField(
         verbose_name='Изображение',
@@ -94,7 +93,7 @@ class Recipe(models.Model):
         Tag,
         verbose_name='Теги',
         related_name='recipes',
-        blank=True  
+        blank=True
     )
     cooking_time = models.PositiveSmallIntegerField(
         verbose_name='Время приготовления (в минутах)',
@@ -179,13 +178,13 @@ class ShoppingCart(models.Model):
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name='shopping_cart',
+        related_name='shopping_cart', 
         verbose_name='Пользователь'
     )
     recipe = models.ForeignKey(
         Recipe,
         on_delete=models.CASCADE,
-        related_name='in_shopping_cart',
+        related_name='in_shopping_cart', 
         verbose_name='Рецепт'
     )
 
@@ -230,7 +229,6 @@ class ShortLink(models.Model):
 
     @staticmethod
     def generate_short_id(recipe_id):
-
         random_str = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
         hash_input = f"{recipe_id}-{random_str}"
         hash_obj = hashlib.md5(hash_input.encode()).hexdigest()

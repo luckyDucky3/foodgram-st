@@ -3,7 +3,6 @@ from djoser.serializers import UserSerializer as BaseUserSerializer
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from recipes.models import Recipe
-from users.models import Subscription
 import base64
 import uuid
 from django.core.files.base import ContentFile
@@ -21,83 +20,48 @@ class UserCreateSerializer(BaseUserCreateSerializer):
 
 
 class UserSerializer(BaseUserSerializer):
-
-    is_subscribed = serializers.SerializerMethodField()
-    avatar = serializers.SerializerMethodField()
+    is_subscribed = serializers.SerializerMethodField(read_only=True)
+    avatar = serializers.SerializerMethodField(read_only=True)
 
     class Meta(BaseUserSerializer.Meta):
         model = User
         fields = ('email', 'id', 'username', 'first_name',
                   'last_name', 'is_subscribed', 'avatar')
-
-    def get_avatar(self, obj):
-        if obj.avatar and hasattr(obj.avatar, 'url'):
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.avatar.url)
-        return None
+        read_only_fields = ('email', 'id', 'username', 'first_name',
+                           'last_name', 'is_subscribed', 'avatar')
 
     def get_is_subscribed(self, obj):
         request = self.context.get('request')
         if request and request.user.is_authenticated:
             return request.user.subscriptions.filter(author=obj).exists()
         return False
-
-
-class RecipeShortSerializer(serializers.ModelSerializer):
-    image = serializers.SerializerMethodField()
-    
-    class Meta:
-        model = Recipe
-        fields = ('id', 'name', 'image', 'cooking_time')
-        read_only_fields = ('id', 'name', 'image', 'cooking_time')
-    
-    def get_image(self, obj):
+        
+    def get_avatar(self, obj):
         request = self.context.get('request')
-        if obj.image and hasattr(obj.image, 'url'):
-            return request.build_absolute_uri(obj.image.url)
+        if obj.avatar and hasattr(obj.avatar, 'url'):
+            return request.build_absolute_uri(obj.avatar.url) if request else obj.avatar.url
         return None
 
 
-class SubscriptionSerializer(UserSerializer):
-    recipes = serializers.SerializerMethodField()
-    recipes_count = serializers.SerializerMethodField()
+class SubscribedAuthorSerializer(UserSerializer):
+    recipes = serializers.SerializerMethodField(read_only=True)
+    recipes_count = serializers.IntegerField(source='recipes.count', read_only=True)
 
-    class Meta:
+    class Meta(UserSerializer.Meta):
         model = User
         fields = ('email', 'id', 'username', 'first_name',
                   'last_name', 'is_subscribed', 'recipes', 'recipes_count', 'avatar')
+        read_only_fields = ('email', 'id', 'username', 'first_name',
+                           'last_name', 'is_subscribed', 'recipes', 'recipes_count', 'avatar')
 
     def get_recipes(self, obj):
+        from api.serializers.recipes import RecipeSerializer
         request = self.context.get('request')
         limit = request.query_params.get('recipes_limit')
         recipes = obj.recipes.all()
         if limit and limit.isdigit():
             recipes = recipes[:int(limit)]
-        return RecipeShortSerializer(recipes, many=True, context=self.context).data
-
-    def get_recipes_count(self, obj):
-        return obj.recipes.count()
-
-
-class SubscribeSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Subscription
-        fields = ('user', 'author')
-
-    def validate(self, data):
-        user = data['user']
-        author = data['author']
-        
-        if user == author:
-            raise serializers.ValidationError(
-                'Нельзя подписаться на самого себя!'
-            )
-        if Subscription.objects.filter(user=user, author=author).exists():
-            raise serializers.ValidationError(
-                'Вы уже подписаны на этого пользователя!'
-            )
-        return data
+        return RecipeSerializer(recipes, many=True, context=self.context).data
 
 
 class AvatarSerializer(serializers.ModelSerializer):
@@ -116,7 +80,6 @@ class AvatarSerializer(serializers.ModelSerializer):
         return {'avatar': None}
         
     def validate_avatar(self, value):
-
         if not value or not isinstance(value, str):
             raise serializers.ValidationError('Некорректный формат данных')
             
