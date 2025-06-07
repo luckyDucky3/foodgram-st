@@ -2,7 +2,7 @@ from django.shortcuts import get_object_or_404
 from djoser.views import UserViewSet as DjoserUserViewSet
 from rest_framework import status
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from ..serializers.users import (UserSerializer, SubscribedAuthorSerializer, 
@@ -14,13 +14,6 @@ class UserViewSet(DjoserUserViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     pagination_class = CustomPagination
-    
-    def get_permissions(self):
-        if self.action == 'retrieve':
-            self.permission_classes = [AllowAny]
-        elif self.action in ['subscribe', 'subscriptions', 'avatar']:
-            self.permission_classes = [IsAuthenticated]
-        return super().get_permissions()
 
     @action(["get"], detail=False, permission_classes=[IsAuthenticated])
     def me(self, request, *args, **kwargs):
@@ -73,8 +66,9 @@ class UserViewSet(DjoserUserViewSet):
             page, many=True, context={'request': request}
         )
         return self.get_paginated_response(serializer.data)
-
-    @action(methods=['put', 'delete'], detail=False, url_path='me/avatar')
+        
+    @action(methods=['put', 'delete'], detail=False, url_path='me/avatar',
+            permission_classes=[IsAuthenticated])
     def avatar(self, request):
         if request.method == 'PUT':
             serializer = AvatarSerializer(

@@ -5,16 +5,12 @@ from django.contrib.auth.validators import UnicodeUsernameValidator
 
 
 class User(AbstractUser):
-    username_validator = UnicodeUsernameValidator()
     
     username = models.CharField(
-        verbose_name='Имя пользователя',
+        verbose_name='Логин', 
         max_length=150,
         unique=True,
-        validators=[username_validator],
-        error_messages={
-            'unique': 'Пользователь с таким именем уже существует.',
-        },
+        validators=[UnicodeUsernameValidator()], 
     )
     
     email = models.EmailField(
@@ -43,7 +39,7 @@ class User(AbstractUser):
     class Meta:
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
-        ordering = ('username',)  
+        ordering = ('username',)
 
     def __str__(self):
         return self.username
@@ -59,7 +55,7 @@ class Subscription(models.Model):
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name='subscribers',  
+        related_name='subscribers', 
         verbose_name='Автор'
     )
 

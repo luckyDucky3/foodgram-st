@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.db.models import Count
-from django.utils.html import format_html
+from django.utils.safestring import mark_safe
 
 from .models import (
     Favorite,
@@ -8,8 +8,7 @@ from .models import (
     Recipe,
     RecipeIngredient,
     ShoppingCart,
-    Tag, 
-    ShortLink 
+ 
 )
 
 
@@ -47,7 +46,7 @@ class RecipeAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         queryset = super().get_queryset(request)
         return queryset.select_related('author').annotate(
-            favorites_count=Count('in_favorites')
+            favorites_count=Count('favorites')
         )
 
     @admin.display(description='В избранном', ordering='favorites_count')
@@ -56,21 +55,17 @@ class RecipeAdmin(admin.ModelAdmin):
     
     @admin.display(description='Ингредиенты')
     def display_ingredients(self, obj):
-        ingredients = obj.recipe_ingredients.select_related('ingredient')[:3]
-        result = "<br>".join([
+        ingredients = obj.recipe_ingredients.select_related('ingredient')
+        result = "<br>".join(
             f"{ing.ingredient.name}: {ing.amount} {ing.ingredient.measurement_unit}" 
             for ing in ingredients
-        ])
-        
-        if obj.recipe_ingredients.count() > 3:
-            result += "<br>..."
-            
-        return format_html(result)
+        )
+        return mark_safe(result)
         
     @admin.display(description='Изображение')
     def display_image(self, obj):
         if obj.image:
-            return format_html('<img src="{}" width="150" />', obj.image.url)
+            return mark_safe(f'<img src="{obj.image.url}" width="150" />')
         return "-"
 
 
@@ -106,27 +101,3 @@ class ShoppingCartAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         return super().get_queryset(request).select_related('user', 'recipe')
 
-
-@admin.register(Tag)
-class TagAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'color_display', 'slug')
-    search_fields = ('name', 'slug')
-    list_filter = ('name',)
-    
-    def color_display(self, obj):
-        return format_html(
-            '<span style="background-color: {}; width: 20px; height: 20px; ' 
-            'display: inline-block; border: 1px solid gray;"></span> {}',
-            obj.color, obj.color
-        )
-    color_display.short_description = 'Цвет'
-
-
-@admin.register(ShortLink)
-class ShortLinkAdmin(admin.ModelAdmin):
-    list_display = ('short_id', 'recipe', 'created_at')
-    search_fields = ('short_id', 'recipe__name')
-    readonly_fields = ('short_id', 'created_at')
-    
-    def get_queryset(self, request):
-        return super().get_queryset(request).select_related('recipe')

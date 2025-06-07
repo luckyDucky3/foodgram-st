@@ -10,14 +10,6 @@ from collections import defaultdict
 class Command(BaseCommand):
     help = 'Импортирует ингредиенты из JSON-файла с оптимизацией для большого объема данных'
 
-    def add_arguments(self, parser):
-        parser.add_argument(
-            '--batch-size',
-            type=int,
-            default=5000,
-            help='Размер пакета для массовой вставки записей'
-        )
-
     def handle(self, *args, **options):
         try:
             file_path = '/app/data/ingredients.json'
@@ -29,13 +21,11 @@ class Command(BaseCommand):
             existing = {(item['name'], item['measurement_unit']): True 
                       for item in Ingredient.objects.all().values('name', 'measurement_unit')}
             
-            new_ingredients = [
-                Ingredient(name=ingredient['name'], measurement_unit=ingredient['measurement_unit'])
+            result = Ingredient.objects.bulk_create([
+                Ingredient(**ingredient)
                 for ingredient in ingredients_data
                 if (ingredient['name'], ingredient['measurement_unit']) not in existing
-            ]
-            
-            result = Ingredient.objects.bulk_create(new_ingredients, ignore_conflicts=True)
+            ], ignore_conflicts=True)
             created_count = len(result)
             
             self.stdout.write(

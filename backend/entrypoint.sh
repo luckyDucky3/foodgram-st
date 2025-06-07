@@ -26,40 +26,34 @@ EOF
 
 echo "Creating test data..."
 python manage.py shell <<EOF
-from recipes.models import Tag, Ingredient
+from recipes.models import Ingredient  # Убрали Tag
 from users.models import User
 
-tags = [
-    {'name': 'Завтрак', 'color': '#FF5733', 'slug': 'breakfast'},
-    {'name': 'Обед', 'color': '#33FF57', 'slug': 'lunch'},
-    {'name': 'Ужин', 'color': '#3357FF', 'slug': 'dinner'},
-    {'name': 'Десерт', 'color': '#FF33F5', 'slug': 'dessert'},
-]
-for tag_data in tags:
-    Tag.objects.get_or_create(**tag_data)
+try:
+    if not User.objects.filter(email='test@test.com').exists():
+        user = User.objects.create_user(
+            username='testuser',
+            email='test@test.com',
+            password='testpassword',
+            first_name='Test',
+            last_name='User'
+        )
 
-if not User.objects.filter(email='test@test.com').exists():
-    user = User.objects.create_user(
-        username='testuser',
-        email='test@test.com',
-        password='testpassword',
-        first_name='Test',
-        last_name='User'
-    )
-
-if not Ingredient.objects.exists():
-    Ingredient.objects.bulk_create([
-        Ingredient(name='Мука', measurement_unit='г'),
-        Ingredient(name='Сахар', measurement_unit='г'),
-        Ingredient(name='Яйцо', measurement_unit='шт'),
-    ])
+    if not Ingredient.objects.exists():
+        Ingredient.objects.bulk_create([
+            Ingredient(name='Мука', measurement_unit='г'),
+            Ingredient(name='Сахар', measurement_unit='г'),
+            Ingredient(name='Яйцо', measurement_unit='шт'),
+        ])
+except Exception as e:
+    print(f"Error creating test data: {e}")
 EOF
 
 echo "Importing ingredients (if needed)..."
 python manage.py import_ingredients || echo "Ingredients import skipped"
 
 echo "Collecting static files..."
-python manage.py collectstatic --noinput
+python manage.py collectstatic --noinput || true
 
 echo "Starting server..."
 exec "$@"

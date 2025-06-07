@@ -1,8 +1,6 @@
-from djoser.serializers import UserCreateSerializer as BaseUserCreateSerializer
 from djoser.serializers import UserSerializer as BaseUserSerializer
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from recipes.models import Recipe
 import base64
 import uuid
 from django.core.files.base import ContentFile
@@ -10,13 +8,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
-
-
-class UserCreateSerializer(BaseUserCreateSerializer):
-
-    class Meta(BaseUserCreateSerializer.Meta):
-        model = User
-        fields = ('email', 'id', 'username', 'first_name', 'last_name', 'password')
 
 
 class UserSerializer(BaseUserSerializer):
@@ -27,14 +18,11 @@ class UserSerializer(BaseUserSerializer):
         model = User
         fields = ('email', 'id', 'username', 'first_name',
                   'last_name', 'is_subscribed', 'avatar')
-        read_only_fields = ('email', 'id', 'username', 'first_name',
-                           'last_name', 'is_subscribed', 'avatar')
 
     def get_is_subscribed(self, obj):
         request = self.context.get('request')
-        if request and request.user.is_authenticated:
-            return request.user.subscriptions.filter(author=obj).exists()
-        return False
+        return (request and request.user.is_authenticated and 
+                request.user.subscriptions.filter(author=obj).exists())
         
     def get_avatar(self, obj):
         request = self.context.get('request')
@@ -51,11 +39,10 @@ class SubscribedAuthorSerializer(UserSerializer):
         model = User
         fields = ('email', 'id', 'username', 'first_name',
                   'last_name', 'is_subscribed', 'recipes', 'recipes_count', 'avatar')
-        read_only_fields = ('email', 'id', 'username', 'first_name',
-                           'last_name', 'is_subscribed', 'recipes', 'recipes_count', 'avatar')
 
     def get_recipes(self, obj):
         from api.serializers.recipes import RecipeSerializer
+        
         request = self.context.get('request')
         limit = request.query_params.get('recipes_limit')
         recipes = obj.recipes.all()
