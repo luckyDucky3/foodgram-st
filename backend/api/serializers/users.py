@@ -18,6 +18,8 @@ class UserSerializer(BaseUserSerializer):
         model = User
         fields = ('email', 'id', 'username', 'first_name',
                   'last_name', 'is_subscribed', 'avatar')
+        read_only_fields = ('email', 'id', 'username', 'first_name',
+                          'last_name', 'is_subscribed', 'avatar')
 
     def get_is_subscribed(self, obj):
         request = self.context.get('request')
@@ -39,6 +41,8 @@ class SubscribedAuthorSerializer(UserSerializer):
         model = User
         fields = ('email', 'id', 'username', 'first_name',
                   'last_name', 'is_subscribed', 'recipes', 'recipes_count', 'avatar')
+        read_only_fields = ('email', 'id', 'username', 'first_name',
+                           'last_name', 'is_subscribed', 'recipes', 'recipes_count', 'avatar')  
 
     def get_recipes(self, obj):
         from api.serializers.recipes import RecipeSerializer

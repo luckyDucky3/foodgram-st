@@ -44,7 +44,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
 
-    def _handle_model_action(self, request, pk, model_class):
+    def handle_favorite_or_shopping_cart(self, request, pk, model_class):
         user = request.user
         recipe = get_object_or_404(Recipe, id=pk)
         verbose_name = model_class._meta.verbose_name
@@ -64,27 +64,21 @@ class RecipeViewSet(viewsets.ModelViewSet):
             )
             return Response(recipe_serializer.data, status=status.HTTP_201_CREATED)
 
-        try:
-            obj = model_class.objects.get(user=user, recipe=recipe)
-            obj.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
-        except model_class.DoesNotExist:
-            return Response(
-                {'errors': f'Рецепт "{recipe.name}" не в {verbose_name}!'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        obj = get_object_or_404(model_class, user=user, recipe=recipe)
+        obj.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=True,
             methods=['post', 'delete'],
             permission_classes=[IsAuthenticated])
     def favorite(self, request, pk=None):
-        return self._handle_model_action(request, pk, Favorite)
+        return self.handle_favorite_or_shopping_cart(request, pk, Favorite)
 
     @action(detail=True,
             methods=['post', 'delete'],
             permission_classes=[IsAuthenticated])
     def shopping_cart(self, request, pk=None):
-        return self._handle_model_action(request, pk, ShoppingCart)
+        return self.handle_favorite_or_shopping_cart(request, pk, ShoppingCart)
 
     @action(detail=False,
             permission_classes=[IsAuthenticated],
@@ -109,21 +103,18 @@ class RecipeViewSet(viewsets.ModelViewSet):
             f'Список покупок от {current_date}',
             '',
             'Продукты:',
-            *[f'{i+1}. {item["ingredient__name"].capitalize()} '
+            *[f'{i}. {item["ingredient__name"].capitalize()} '
               f'({item["ingredient__measurement_unit"]}) — {item["amount"]}'
-              for i, item in enumerate(ingredients)],
+              for i, item in enumerate(ingredients, 1)],
             '',
             'Рецепты:',
             *[f'• {recipe.name} (автор: {recipe.author.get_full_name() or recipe.author.username})'
               for recipe in recipes],
         ])
 
-        file_content = shopping_list.encode('utf-8')
-        file_buffer = BytesIO(file_content)
-        
         response = FileResponse(
-            file_buffer,
-            content_type='text/plain; charset=utf-8',
+            BytesIO(shopping_list.encode('utf-8')),
+            content_type='text/plain',
             filename='shopping_cart.txt'
         )
         return response
@@ -132,10 +123,10 @@ class RecipeViewSet(viewsets.ModelViewSet):
             methods=['get'],
             url_path='get-link')
     def get_link(self, request, pk=None):
-        recipe = self.get_object()
+        get_object_or_404(Recipe, id=pk)
         
         short_url = request.build_absolute_uri(
-            reverse('recipe_redirect', args=[recipe.id])
+            reverse('recipe_redirect', args=[pk])
         )
         
         return Response({'short-link': short_url})

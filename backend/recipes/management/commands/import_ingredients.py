@@ -15,17 +15,17 @@ class Command(BaseCommand):
             file_path = '/app/data/ingredients.json'
             
             self.stdout.write(f'Загрузка данных из файла {file_path}...')
-            with open(file_path, 'r', encoding='utf-8') as f:
-                ingredients_data = json.load(f)
             
             existing = {(item['name'], item['measurement_unit']): True 
                       for item in Ingredient.objects.all().values('name', 'measurement_unit')}
             
-            result = Ingredient.objects.bulk_create([
-                Ingredient(**ingredient)
-                for ingredient in ingredients_data
-                if (ingredient['name'], ingredient['measurement_unit']) not in existing
-            ], ignore_conflicts=True)
+            with open(file_path, 'r', encoding='utf-8') as f:
+                result = Ingredient.objects.bulk_create([
+                    Ingredient(**ingredient) 
+                    for ingredient in json.load(f)
+                    if (ingredient['name'], ingredient['measurement_unit']) not in existing], 
+                    ignore_conflicts=True)
+            
             created_count = len(result)
             
             self.stdout.write(

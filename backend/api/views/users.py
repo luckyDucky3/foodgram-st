@@ -32,25 +32,25 @@ class UserViewSet(DjoserUserViewSet):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            if Subscription.objects.filter(user=user, author=author).exists():
+            subscription, created = Subscription.objects.get_or_create(
+                user=user, author=author
+            )
+            
+            if not created:
                 return Response(
                     {'errors': f'Вы уже подписаны на пользователя {author.username}'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            Subscription.objects.create(user=user, author=author)
             serializer = SubscribedAuthorSerializer(
                 author, context={'request': request}
             )
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-        subscription = Subscription.objects.filter(user=user, author=author)
-        if not subscription.exists():
-            return Response(
-                {'errors': f'Вы не подписаны на пользователя {author.username}'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
+        subscription = get_object_or_404(
+            Subscription, user=user, author=author,
+            message=f'Вы не подписаны на пользователя {author.username}'
+        )
         subscription.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 

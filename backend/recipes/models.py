@@ -9,12 +9,12 @@ User = get_user_model()
 class Ingredient(models.Model):
     name = models.CharField(
         verbose_name='Название ингредиента',
-        max_length=200,
+        max_length=128,
         blank=False
     )
     measurement_unit = models.CharField(
         verbose_name='Единица измерения',
-        max_length=200,
+        max_length=64,
         blank=False 
     )
 
@@ -41,7 +41,7 @@ class Recipe(models.Model):
     )
     name = models.CharField(
         verbose_name='Название рецепта',
-        max_length=200,
+        max_length=256,
         blank=False
     )
     image = models.ImageField(
